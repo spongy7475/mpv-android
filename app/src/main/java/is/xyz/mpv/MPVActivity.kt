@@ -720,28 +720,43 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         return super.dispatchGenericMotionEvent(ev)
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (lockedUI) {
-            if (ev.action == MotionEvent.ACTION_UP || ev.action == MotionEvent.ACTION_DOWN)
-                showUnlockControls()
-            return super.dispatchTouchEvent(ev)
-        }
+private var tapCount = 0
+private var lastTapTime: Long = 0
+private val tripleTapTimeout = ViewConfiguration.getDoubleTapTimeout().toLong()
 
-        if (super.dispatchTouchEvent(ev)) {
-            // reset delay if the event has been handled
-            // ideally we'd want to know if the event was delivered to controls, but we can't
-            if (binding.controls.visibility == View.VISIBLE && !fadeRunnable.hasStarted)
-                showControls()
-            if (ev.action == MotionEvent.ACTION_UP)
-                return true
+override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+    if (lockedUI) {
+        if (ev.action == MotionEvent.ACTION_UP || ev.action == MotionEvent.ACTION_DOWN)
+            showUnlockControls()
+        return super.dispatchTouchEvent(ev)
+    }
+
+    if (super.dispatchTouchEvent(ev)) {
+        // reset delay if the event has been handled
+        // ideally we'd want to know if the event was delivered to controls, but we can't
+        if (binding.controls.visibility == View.VISIBLE && !fadeRunnable.hasStarted)
+            showControls()
+        if (ev.action == MotionEvent.ACTION_UP)
+            return true
+    }
+
+    if (ev.action == MotionEvent.ACTION_DOWN) {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastTapTime < tripleTapTimeout) {
+            tapCount++
+        } else {
+            tapCount = 1
         }
-        if (ev.action == MotionEvent.ACTION_DOWN)
-            mightWantToToggleControls = true
-        if (ev.action == MotionEvent.ACTION_UP && mightWantToToggleControls) {
+        lastTapTime = currentTime
+
+        if (tapCount == 3) {
+            tapCount = 0 // Reset tap count after detecting triple tap
             toggleControls()
         }
-        return true
     }
+
+    return true
+}
 
     /**
      * Returns views eligible for dpad button navigation
