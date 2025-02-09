@@ -721,7 +721,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
 private var longPressHandler = Handler(Looper.getMainLooper())
-private val LONG_PRESS_DURATION = 2000L // 2 seconds
+private val LONG_PRESS_DURATION = 1000L // 2 seconds
 private var isLongPressTriggered = false
 
 override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
