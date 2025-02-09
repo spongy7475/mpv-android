@@ -720,9 +720,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         return super.dispatchGenericMotionEvent(ev)
     }
 
-private var tapCount = 0
-private var lastTapTime: Long = 0
-private val tripleTapTimeout = ViewConfiguration.getDoubleTapTimeout().toLong()
+private var longPressHandler = Handler(Looper.getMainLooper())
+private val LONG_PRESS_DURATION = 2000L // 2 seconds
+private var isLongPressTriggered = false
 
 override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
     if (lockedUI) {
@@ -733,25 +733,26 @@ override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
 
     if (super.dispatchTouchEvent(ev)) {
         // reset delay if the event has been handled
-        // ideally we'd want to know if the event was delivered to controls, but we can't
         if (binding.controls.visibility == View.VISIBLE && !fadeRunnable.hasStarted)
             showControls()
         if (ev.action == MotionEvent.ACTION_UP)
             return true
     }
 
-    if (ev.action == MotionEvent.ACTION_DOWN) {
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastTapTime < tripleTapTimeout) {
-            tapCount++
-        } else {
-            tapCount = 1
+    when (ev.action) {
+        MotionEvent.ACTION_DOWN -> {
+            // Start a delayed task to detect long press
+            longPressHandler.postDelayed({
+                if (!isLongPressTriggered) {
+                    isLongPressTriggered = true
+                    toggleControls()
+                }
+            }, LONG_PRESS_DURATION)
         }
-        lastTapTime = currentTime
-
-        if (tapCount == 3) {
-            tapCount = 0 // Reset tap count after detecting triple tap
-            toggleControls()
+        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+            // Cancel the long press detection if the finger is lifted or the gesture is canceled
+            longPressHandler.removeCallbacksAndMessages(null)
+            isLongPressTriggered = false
         }
     }
 
